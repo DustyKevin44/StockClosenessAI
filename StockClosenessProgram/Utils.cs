@@ -67,4 +67,19 @@ public static class Utils
 
         return sumXY / Math.Sqrt(sumX2 * sumY2);
     }
+    public static string CorrelationDescription(double corr)
+        {
+            corr = Math.Round(corr * 100, 0);
+            string desc;
+
+            if (corr >= 80) desc = "very strongly moves together";
+            else if (corr >= 60) desc = "moves fairly often in the same direction";
+            else if (corr >= 30) desc = "moves sometimes in the same direction";
+            else if (corr >= 0) desc = "moves mostly independently";
+            else if (corr >= -30) desc = "moves mostly independently or slightly opposite";
+            else if (corr >= -60) desc = "moves fairly often in the opposite direction";
+            else desc = "moves very strongly in the opposite direction";
+
+            return $"{Math.Round(corr, 0)}% → {desc}";
+        }
 }
