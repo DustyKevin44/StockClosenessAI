@@ -326,6 +326,34 @@ namespace StockClosenessAI
             {"PPL", new CompanyInfo("Utilities", "Electric and natural gas utility (PPL Corporation)")},
             {"BEP", new CompanyInfo("Utilities", "Renewable power and energy transition (Brookfield Renewable Partners L.P.)")},
             {"AWK", new CompanyInfo("Utilities", "Water and wastewater utility (American Water Works Company, Inc.)")},
+
+            // --- (Original sections continued with unique items) ---
+            {"AMAT", new CompanyInfo("Semiconductor Equipment", "Supplies manufacturing equipment for chips, displays, and solar products (Applied Materials)")},
+            {"LRCX", new CompanyInfo("Semiconductor Equipment", "Manufactures equipment used to fabricate integrated circuits (Lam Research)")},
+            {"ADI", new CompanyInfo("Analog Semiconductor", "Manufactures analog, mixed-signal, and digital signal processing (DSP) ICs (Analog Devices)")},
+            {"UMC", new CompanyInfo("Semiconductor Foundry", "Provides foundry services for integrated circuits (United Microelectronics Corporation)")},
+            {"FSLY", new CompanyInfo("Edge Cloud Infrastructure", "Provides edge cloud platform for delivering content and applications (Fastly)")},
+            {"GLW", new CompanyInfo("Materials Science", "Manufactures specialized glass, ceramics, and optical fibers (Corning Incorporated)")},
+            {"SMCI", new CompanyInfo("Server Manufacturing", "Develops high-performance server and storage solutions (Super Micro Computer)")},
+            {"KEYS", new CompanyInfo("Electronic Measurement", "Provides electronic measurement instrumentation and software (Keysight Technologies)")},
+            {"XLNX", new CompanyInfo("FPGA Semiconductor", "Manufacturer of field-programmable gate arrays (now part of AMD) (Xilinx)")},
+            {"SYNA", new CompanyInfo("Human Interface Solutions", "Designs and markets human interface solutions, including touch controllers (Synaptics Incorporated)")},
+            {"VISH", new CompanyInfo("Electronic Components", "Manufactures discrete semiconductors and passive electronic components (Vishay Intertechnology)")},
+            {"AOS", new CompanyInfo("Water Technology", "Manufactures and markets water heaters, boilers, and water treatment products (A. O. Smith Corporation)")},
+            {"GM", new CompanyInfo("Automotive Manufacturing", "Designs, manufactures, and sells cars, trucks, and automobile parts (General Motors Company)")},
+            {"F", new CompanyInfo("Automotive Manufacturing", "Designs, manufactures, markets, and services a full line of cars, trucks, and SUVs (Ford Motor Company)")},
+            {"APTIV", new CompanyInfo("Vehicle Technology", "Provides solutions for the future of mobility, specializing in vehicle architecture and electronics (Aptiv PLC)")},
+            {"BWA", new CompanyInfo("Automotive Components", "Supplies innovative solutions for combustion, hybrid, and electric vehicles (BorgWarner)")},
+            {"DAN", new CompanyInfo("Drivetrain Components", "Supplies power-train and energy-management solutions for vehicles (Dana Incorporated)")},
+            {"LEA", new CompanyInfo("Automotive Seating", "Designs and manufactures automotive seating and E-Systems (Lear Corporation)")},
+            {"TEN", new CompanyInfo("Thermal Management", "Provides thermal management products for light vehicles and commercial trucks (Tenneco)")},
+            {"GNTX", new CompanyInfo("Automotive Electronics", "Manufactures automotive mirrors and electronic features (Gentex Corporation)")},
+            {"SHW", new CompanyInfo("Paints/Coatings", "Manufactures, distributes, and sells paints, coatings, and related products (Sherwin-Williams Company)")},
+            {"ITT", new CompanyInfo("Engineered Components", "Manufactures highly engineered critical components and customized technology solutions (ITT Inc.)")},
+            {"DOV", new CompanyInfo("Diversified Industrial", "Manufactures equipment and components for industrial, fluid, and energy markets (Dover Corporation)")},
+            {"TDY", new CompanyInfo("Scientific Instruments", "Provides instruments, digital imaging, and aerospace and defense electronics (Teledyne Technologies)")},
+            {"SPXC", new CompanyInfo("Industrial Machinery", "Manufactures highly engineered capital equipment and components (SPX Corporation)")},
+            {"OSK", new CompanyInfo("Specialty Vehicles", "Designs and manufactures specialty vehicles and vehicle bodies (Oshkosh Corporation)")}
         };
 
         public static CompanyInfo Get(string ticker)
