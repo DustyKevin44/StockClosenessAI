@@ -2,21 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 
-// NOTE: This file assumes the following classes/methods exist and are correct:
-// - StockData class (with Ticker and Returns properties)
-// - CsvLoader.LoadAllStocksFromFolder()
-// - Utils.PearsonCorrelation(), Utils.CorrelationDescription()
-// - CompanyInfo class (with Industry and Description properties)
-// - CompanyDescriptions.Get()
+// NOTE: Assumes StockData, CsvLoader, CompanyInfo, CompanyDescriptions, Utils exist
 namespace StockClosenessAI;
 class Program
 {
     static void Main()
     {
-        string folderPath = "Data"; // Folder containing all CSVs
-        int maxDays = 90;           // Last N days to use
+        string folderPath = "Data";
+        int maxDays = 30;
 
-        // Load all stocks once
         var stocks = CsvLoader.LoadAllStocksFromFolder(folderPath, maxDays);
 
         if (!stocks.Any())
@@ -27,16 +21,16 @@ class Program
 
         Console.WriteLine($"\nLoaded {stocks.Count} stocks.\n");
 
-        // Menu loop
         bool running = true;
         while (running)
         {
+            Console.ReadKey();
             Console.Clear();
             Console.WriteLine("\nSelect an option:");
-            Console.WriteLine("1. One stock against 3 closest stocks");
+            Console.WriteLine("1. One stock against 3 closest stocks (cointegration only)");
             Console.WriteLine("2. One stock against another stock");
-            Console.WriteLine("3. One stock against 3 most opposite stocks");
-            Console.WriteLine("4. Quit"); // Quit is now 4
+            Console.WriteLine("3. One stock against 3 most opposite stocks (non-cointegrated)");
+            Console.WriteLine("4. Quit");
             Console.Write("Choice: ");
             string choice = Console.ReadLine().Trim();
 
@@ -62,8 +56,7 @@ class Program
 
         Console.WriteLine("Goodbye!");
     }
-    
-    // --- Helper Function: GetStockInput ---
+
     static StockData GetStockInput(List<StockData> stocks, string prompt)
     {
         while (true)
@@ -72,13 +65,12 @@ class Program
             string input = Console.ReadLine().Trim().ToUpper();
 
             var stock = stocks.FirstOrDefault(s => s.Ticker.ToUpper() == input);
-            if (stock != null)
-                return stock;
+            if (stock != null) return stock;
 
             CompanyInfo info = CompanyDescriptions.Get(input);
             if (info != null)
             {
-                Console.WriteLine($"'{input}' is defined ({info.Industry}), but no stock data was loaded for it. Try a different ticker.");
+                Console.WriteLine($"'{input}' is defined ({info.Industry}), but no stock data was loaded for it.");
             }
             else
             {
@@ -87,14 +79,14 @@ class Program
         }
     }
 
-    // --- Helper Function: GetOneLineDescription (NEW) ---
-    static string GetOneLineDescription(string ticker, CompanyInfo info, double score)
+    static string GetOneLineDescription(string ticker, CompanyInfo info, double pearsonScore, double? cointegrationScore = null)
     {
         string name = "N/A Name";
         string industry = "N/A Industry";
         string descriptionSnippet = "N/A Description";
-        string closenessText = double.IsNaN(score) ? "N/A Score" : Utils.CorrelationDescription(score);
-        string scoreDisplay = double.IsNaN(score) ? "N/A" : score.ToString("F4");
+
+        string pearsonText = double.IsNaN(pearsonScore) ? "N/A" : pearsonScore.ToString("F4");
+        string cointegrationText = cointegrationScore.HasValue ? $"{(cointegrationScore.Value * 100):F1}%" : "N/A";
 
         if (info != null)
         {
@@ -102,12 +94,9 @@ class Program
             string fullDesc = info.Description;
             int lastParenStart = fullDesc.LastIndexOf('(');
             int lastParenEnd = fullDesc.LastIndexOf(')');
-
             if (lastParenStart != -1 && lastParenEnd != -1 && lastParenEnd > lastParenStart)
             {
-                // Extract the name (text inside the last parentheses)
                 name = fullDesc.Substring(lastParenStart + 1, lastParenEnd - lastParenStart - 1).Trim();
-                // Use the main part of the description as the snippet
                 descriptionSnippet = fullDesc.Substring(0, lastParenStart).Trim().TrimEnd(',');
             }
             else
@@ -116,12 +105,10 @@ class Program
                 name = info.Description;
             }
         }
-        
-        // Final One-Line Format: [Ticker] ([Industry]) - [Name]: [Closeness] ([Score]) | [Description snippet]
-        return $"{ticker} ({industry}) - {name}: {closenessText} ({scoreDisplay}) | {descriptionSnippet}";
+
+        return $"{ticker} ({industry}) - {name} | Pearson: {pearsonText} | Cointegration: {cointegrationText} | {descriptionSnippet}";
     }
-    
-    // --- Function 1: OneStockTop3 (Closest Stocks) ---
+
     static void OneStockTop3(List<StockData> stocks)
     {
         var stock = GetStockInput(stocks, "Enter the ticker of the target stock: ");
@@ -129,44 +116,50 @@ class Program
 
         var top3 = stocks
             .Where(s => s.Ticker != stock.Ticker)
-            .Select(s => new { s.Ticker, Score = Utils.PearsonCorrelation(stock.Returns, s.Returns) })
-            .Where(x => !double.IsNaN(x.Score))
-            .OrderByDescending(x => x.Score)
+            .Select(s =>
+            {
+                double pearson = Utils.PearsonCorrelation(stock.Returns, s.Returns); // insight only
+                double cointegration = Utils.CointegrationScore(stock.Returns, s.Returns);
+                return new { s.Ticker, Pearson = pearson, Cointegration = cointegration };
+            })
+            .Where(x => x.Cointegration >= 0.5)      // threshold for reasonably strong cointegration
+            .OrderByDescending(x => x.Cointegration) // sort by closeness
             .Take(3);
 
-        Console.WriteLine($"\nTop 3 stocks most correlated with {stock.Ticker}:");
+        Console.WriteLine($"\nTop 3 stocks most closely cointegrated with {stock.Ticker}:");
+
         foreach (var s in top3)
         {
             CompanyInfo info = CompanyDescriptions.Get(s.Ticker);
-            Console.WriteLine(GetOneLineDescription(s.Ticker, info, s.Score));
+            Console.WriteLine(GetOneLineDescription(s.Ticker, info, s.Pearson, s.Cointegration));
+        }
+
+        if (!top3.Any())
+        {
+            Console.WriteLine("No cointegrated stocks found.");
         }
     }
 
-    // --- Function 2: OneStockVsAnother ---
     static void OneStockVsAnother(List<StockData> stocks)
     {
         var stock1 = GetStockInput(stocks, "Enter the ticker of the first stock: ");
         if (stock1 == null) return;
-
         var stock2 = GetStockInput(stocks, "Enter the ticker of the second stock: ");
         if (stock2 == null) return;
 
-        double closeness = Utils.PearsonCorrelation(stock1.Returns, stock2.Returns);
-        
+        double pearson = Utils.PearsonCorrelation(stock1.Returns, stock2.Returns);
+        double coin = Utils.CointegrationScore(stock1.Returns, stock2.Returns);
+
         CompanyInfo info1 = CompanyDescriptions.Get(stock1.Ticker);
         CompanyInfo info2 = CompanyDescriptions.Get(stock2.Ticker);
-        
-        // Output details for both stocks (score is NaN here, as it's the correlation score itself)
-        Console.WriteLine($"\n--- Stock 1 Details ---");
-        Console.WriteLine(GetOneLineDescription(stock1.Ticker, info1, double.NaN));
-        
-        Console.WriteLine($"\n--- Stock 2 Details ---");
-        Console.WriteLine(GetOneLineDescription(stock2.Ticker, info2, double.NaN));
 
-        Console.WriteLine($"\nOverall Closeness: {Utils.CorrelationDescription(closeness)} (Score: {closeness:F4})");
+        Console.WriteLine($"\n--- Stock 1 Details ---");
+        Console.WriteLine(GetOneLineDescription(stock1.Ticker, info1, pearson, coin));
+
+        Console.WriteLine($"\n--- Stock 2 Details ---");
+        Console.WriteLine(GetOneLineDescription(stock2.Ticker, info2, pearson, coin));
     }
 
-    // --- Function 3: OneStockMostOpposite (Furthest Stocks) ---
     static void OneStockMostOpposite(List<StockData> stocks)
     {
         var stock = GetStockInput(stocks, "Enter the ticker of the target stock: ");
@@ -174,16 +167,27 @@ class Program
 
         var topOpposite = stocks
             .Where(s => s.Ticker != stock.Ticker)
-            .Select(s => new { s.Ticker, Score = Utils.PearsonCorrelation(stock.Returns, s.Returns) })
-            .Where(x => !double.IsNaN(x.Score))
-            .OrderBy(x => x.Score) // Furthest (most opposite) means lowest correlation (most negative)
+            .Select(s =>
+            {
+                double pearson = Utils.PearsonCorrelation(stock.Returns, s.Returns); // insight only
+                double cointegration = Utils.CointegrationScore(stock.Returns, s.Returns);
+                return new { s.Ticker, Pearson = pearson, Cointegration = cointegration };
+            })
+            .Where(x => x.Cointegration < 0.2)     // weak / opposite
+            .OrderBy(x => x.Cointegration)         // lowest first
             .Take(3);
 
-        Console.WriteLine($"\nTop 3 stocks that move most opposite to {stock.Ticker}:");
+        Console.WriteLine($"\nTop 3 stocks least likely to be cointegrated with {stock.Ticker}:");
+
         foreach (var s in topOpposite)
         {
             CompanyInfo info = CompanyDescriptions.Get(s.Ticker);
-            Console.WriteLine(GetOneLineDescription(s.Ticker, info, s.Score));
+            Console.WriteLine(GetOneLineDescription(s.Ticker, info, s.Pearson, s.Cointegration));
+        }
+
+        if (!topOpposite.Any())
+        {
+            Console.WriteLine("No non-cointegrated stocks found.");
         }
     }
 }
